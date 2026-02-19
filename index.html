@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>タロット鑑定サポート</title>
+  <style>
+    /* ── リセット & ベース ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0a1a;
+      --surface: #1a1430;
+      --surface2: #231c42;
+      --border: #3d2f6e;
+      --gold: #c9a84c;
+      --gold-light: #f0d080;
+      --text: #e8e0f8;
+      --text-muted: #9988cc;
+      --tarot: #7b4fcf;
+      --tarot-light: #a97ee8;
+      --oracle: #2e7d9c;
+      --oracle-light: #5db8d8;
+      --radius: 12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+      min-height: 100vh;
+      padding: 24px 16px 60px;
+    }
+
+    /* ── ヘッダー ── */
+    header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--gold), var(--gold-light), var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 0.12em;
+    }
+    header p {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-top: 6px;
+      letter-spacing: 0.06em;
+    }
+    .stars {
+      font-size: 1.2rem;
+      letter-spacing: 0.3em;
+      margin-bottom: 8px;
+    }
+
+    /* ── コンテンツ幅 ── */
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    /* ── セクションカード ── */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+    }
+    .section-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: 0.08em;
+      margin-bottom: 18px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-title span {
+      display: inline-block;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 2px 10px;
+      font-size: 0.75rem;
+      margin-right: 8px;
+      color: var(--gold-light);
+    }
+
+    /* ── フォーム ── */
+    .form-grid {
+      display: grid;
+      gap: 16px;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 600px) {
+      .form-row { grid-template-columns: 1fr; }
+    }
+    label {
+      display: block;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      letter-spacing: 0.04em;
+    }
+    input[type="text"], textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.95rem;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      font-family: inherit;
+      resize: vertical;
+    }
+    input[type="text"]:focus, textarea:focus {
+      border-color: var(--gold);
+    }
+    textarea { min-height: 90px; }
+
+    /* ── ボタン ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      transition: transform 0.15s, opacity 0.15s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary {
+      background: linear-gradient(135deg, #6034b8, var(--tarot));
+      color: #fff;
+      font-size: 1.05rem;
+      padding: 13px 32px;
+    }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-copy {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 0.88rem;
+      padding: 8px 18px;
+    }
+    .btn-copy:hover { border-color: var(--gold); color: var(--gold); }
+    .btn-center { display: flex; justify-content: center; }
+
+    /* ── カード表示エリア ── */
+    .card-stage {
+      display: none;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .card-stage.show { display: flex; }
+
+    .row-label {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+
+    .card-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    @media (max-width: 520px) {
+      .card-row { grid-template-columns: 1fr; }
+    }
+
+    .card-item {
+      border-radius: 10px;
+      padding: 16px 14px;
+      text-align: center;
+      position: relative;
+      border: 1px solid transparent;
+    }
+    .card-item.tarot-card {
+      background: linear-gradient(160deg, #2a1a50, #1e1238);
+      border-color: var(--tarot);
+    }
+    .card-item.oracle-card {
+      background: linear-gradient(160deg, #0d2535, #091b2a);
+      border-color: var(--oracle);
+    }
+
+    .card-type-badge {
+      display: inline-block;
+      font-size: 0.68rem;
+      letter-spacing: 0.06em;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+    .tarot-card .card-type-badge {
+      background: var(--tarot);
+      color: #fff;
+    }
+    .oracle-card .card-type-badge {
+      background: var(--oracle);
+      color: #fff;
+    }
+
+    .card-symbol {
+      font-size: 2rem;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .card-name {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+      line-height: 1.3;
+    }
+
+    .card-position {
+      display: inline-block;
+      font-size: 0.75rem;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+    .pos-upright {
+      background: rgba(201,168,76,0.15);
+      color: var(--gold-light);
+      border: 1px solid rgba(201,168,76,0.4);
+    }
+    .pos-reversed {
+      background: rgba(180,60,60,0.15);
+      color: #e88888;
+      border: 1px solid rgba(180,60,60,0.35);
+      transform: rotate(180deg);
+      display: inline-block;
+    }
+    .card-item.reversed-card .card-symbol,
+    .card-item.reversed-card .card-name {
+      opacity: 0.85;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 4px 0;
+    }
+
+    /* ── プロンプト ── */
+    .prompt-area {
+      display: none;
+    }
+    .prompt-area.show { display: block; }
+
+    .prompt-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    #promptText {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.88rem;
+      padding: 14px;
+      min-height: 340px;
+      resize: vertical;
+      font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', monospace;
+      line-height: 1.7;
+      outline: none;
+    }
+    #promptText:focus { border-color: var(--gold); }
+
+    .copy-notice {
+      display: none;
+      font-size: 0.8rem;
+      color: #88e8a0;
+      margin-left: 10px;
+    }
+    .copy-notice.show { display: inline; }
+
+    /* ── アニメーション ── */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .card-item { animation: fadeInUp 0.4s ease both; }
+    .card-row .card-item:nth-child(1) { animation-delay: 0.05s; }
+    .card-row .card-item:nth-child(2) { animation-delay: 0.15s; }
+    .card-row .card-item:nth-child(3) { animation-delay: 0.25s; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="stars">✦ ✧ ✦</div>
+  <h1>タロット鑑定サポート</h1>
+  <p>カードを引いて、鑑定プロンプトを自動生成します</p>
+</header>
+
+<div class="container">
+
+  <!-- ① 顧客情報 -->
+  <div class="section">
+    <div class="section-title"><span>STEP 1</span>顧客情報の入力</div>
+    <div class="form-grid">
+      <div class="form-row">
+        <div>
+          <label for="clientName">相談者のお名前</label>
+          <input type="text" id="clientName" placeholder="例：山田 花子 様" />
+        </div>
+        <div>
+          <label for="readingTheme">鑑定テーマ</label>
+          <input type="text" id="readingTheme" placeholder="例：転職・恋愛・人間関係" />
+        </div>
+      </div>
+      <div>
+        <label for="summary">相談内容の要約</label>
+        <textarea id="summary" placeholder="例：今の仕事を続けるべきか悩んでいる。新しい職場のオファーがあるが踏み切れない。"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② カードを引く -->
+  <div class="section">
+    <div class="section-title"><span>STEP 2</span>カードを引く</div>
+    <div class="btn-center" style="margin-bottom: 24px;">
+      <button class="btn btn-primary" id="drawBtn" onclick="drawCards()">
+        ✦ カードを引く ✦
+      </button>
+    </div>
+
+    <div class="card-stage" id="cardStage">
+      <div>
+        <div class="row-label">▲ 上段（現状・課題）</div>
+        <div class="card-row" id="topRow"></div>
+      </div>
+      <hr class="divider" />
+      <div>
+        <div class="row-label">▼ 下段（アドバイス・未来）</div>
+        <div class="card-row" id="bottomRow"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ プロンプト -->
+  <div class="section prompt-area" id="promptSection">
+    <div class="section-title"><span>STEP 3</span>プロンプト自動生成</div>
+    <div class="prompt-header">
+      <div style="font-size:0.85rem; color:var(--text-muted);">
+        以下のプロンプトをコピーして、AIへ貼り付けてください
+      </div>
+      <div>
+        <button class="btn btn-copy" onclick="copyPrompt()">📋 コピー</button>
+        <span class="copy-notice" id="copyNotice">✓ コピーしました！</span>
+      </div>
+    </div>
+    <textarea id="promptText" readonly></textarea>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+  /* ═══════════════════════════════════════════
+     データ定義
+  ═══════════════════════════════════════════ */
+
+  // タロット 78枚
+  const TAROT = [
+    // 大アルカナ（22枚）
+    '愚者（0）', '魔術師（Ⅰ）', '女教皇（Ⅱ）', '女帝（Ⅲ）', '皇帝（Ⅳ）',
+    '教皇（Ⅴ）', '恋人たち（Ⅵ）', '戦車（Ⅶ）', '力（Ⅷ）', '隠者（Ⅸ）',
+    '運命の輪（Ⅹ）', '正義（Ⅺ）', '吊るされた男（Ⅻ）', '死神（ⅩⅢ）',
+    '節制（ⅩⅣ）', '悪魔（ⅩⅤ）', '塔（ⅩⅥ）', '星（ⅩⅦ）', '月（ⅩⅧ）',
+    '太陽（ⅩⅨ）', '審判（ⅩⅩ）', '世界（ⅩⅪ）',
+    // ワンド（14枚）
+    'ワンドのエース', 'ワンドの2', 'ワンドの3', 'ワンドの4', 'ワンドの5',
+    'ワンドの6', 'ワンドの7', 'ワンドの8', 'ワンドの9', 'ワンドの10',
+    'ワンドのペイジ', 'ワンドのナイト', 'ワンドのクイーン', 'ワンドのキング',
+    // カップ（14枚）
+    'カップのエース', 'カップの2', 'カップの3', 'カップの4', 'カップの5',
+    'カップの6', 'カップの7', 'カップの8', 'カップの9', 'カップの10',
+    'カップのペイジ', 'カップのナイト', 'カップのクイーン', 'カップのキング',
+    // ソード（14枚）
+    'ソードのエース', 'ソードの2', 'ソードの3', 'ソードの4', 'ソードの5',
+    'ソードの6', 'ソードの7', 'ソードの8', 'ソードの9', 'ソードの10',
+    'ソードのペイジ', 'ソードのナイト', 'ソードのクイーン', 'ソードのキング',
+    // ペンタクル（14枚）
+    'ペンタクルのエース', 'ペンタクルの2', 'ペンタクルの3', 'ペンタクルの4', 'ペンタクルの5',
+    'ペンタクルの6', 'ペンタクルの7', 'ペンタクルの8', 'ペンタクルの9', 'ペンタクルの10',
+    'ペンタクルのペイジ', 'ペンタクルのナイト', 'ペンタクルのクイーン', 'ペンタクルのキング',
+  ];
+
+  // オラクル 52枚
+  const ORACLE = [
+    '愛の光', '信頼', '解放', '変容', '豊かさ', '内なる知恵', '新しい始まり',
+    '守護', '直感', '癒し', '感謝', '奇跡', '平和', '勇気', '創造性', '繁栄',
+    '調和', '喜び', '自由', '浄化', '成長', '希望', '強さ', '慈悲', '夢',
+    '真実', 'バランス', '導き', '受容', '再生', '祝福', '明晰さ', '情熱',
+    '忍耐', '成功', '神聖な愛', '霊的覚醒', '豊穣', '深いつながり', '内省',
+    '変化の風', '流れに乗る', '境界線', '自己愛', '好奇心', '聖なる女性性',
+    '神聖な男性性', '統合', '手放し', '新しい章', '光の目覚め', '奇跡の種',
+  ];
+
+  // スート別絵文字
+  const TAROT_SYMBOL = {
+    '大アルカナ': '✨',
+    'ワンド': '🔥',
+    'カップ': '💧',
+    'ソード': '⚡',
+    'ペンタクル': '🌿',
+  };
+  const ORACLE_SYMBOLS = ['🌙','⭐','🌸','🦋','🌺','🌈','🔮','🌟','💎','🌊','☀️','🌿'];
+
+  /* ═══════════════════════════════════════════
+     ユーティリティ
+  ═══════════════════════════════════════════ */
+
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function pick(arr, n) {
+    return shuffle(arr).slice(0, n);
+  }
+
+  function randomPosition() {
+    return Math.random() < 0.5 ? '正位置' : '逆位置';
+  }
+
+  function getSymbol(cardName) {
+    if (ORACLE.includes(cardName)) {
+      return ORACLE_SYMBOLS[Math.floor(Math.random() * ORACLE_SYMBOLS.length)];
+    }
+    const idx = TAROT.indexOf(cardName);
+    if (idx < 22) return TAROT_SYMBOL['大アルカナ'];
+    if (idx < 36) return TAROT_SYMBOL['ワンド'];
+    if (idx < 50) return TAROT_SYMBOL['カップ'];
+    if (idx < 64) return TAROT_SYMBOL['ソード'];
+    return TAROT_SYMBOL['ペンタクル'];
+  }
+
+  /* ═══════════════════════════════════════════
+     カード描画
+  ═══════════════════════════════════════════ */
+
+  function renderCard(card, isTarot) {
+    const pos = randomPosition();
+    const reversed = pos === '逆位置';
+    const symbol = getSymbol(card);
+    const typeLabel = isTarot ? 'タロット' : 'オラクル';
+    const typeClass = isTarot ? 'tarot-card' : 'oracle-card';
+
+    return {
+      html: `
+        <div class="card-item ${typeClass}${reversed ? ' reversed-card' : ''}">
+          <div class="card-type-badge">${typeLabel}</div>
+          <span class="card-symbol">${symbol}</span>
+          <div class="card-name">${card}</div>
+          <span class="card-position ${reversed ? 'pos-reversed' : 'pos-upright'}">${pos}</span>
+        </div>`,
+      text: `${card}（${pos}）`,
+    };
+  }
+
+  /* ═══════════════════════════════════════════
+     メイン：カードを引く
+  ═══════════════════════════════════════════ */
+
+  let drawnCards = null;
+
+  function drawCards() {
+    const [t1, t2] = pick(TAROT, 2).map(c => ({ name: c, pos: randomPosition(), isTarot: true  }));
+    const [o1, o2, o3, o4] = pick(ORACLE, 4).map(c => ({ name: c, pos: randomPosition(), isTarot: false }));
+
+    // 上段：タロット1 + オラクル1 + オラクル2
+    // 下段：タロット2 + オラクル3 + オラクル4
+    const topCards    = [t1, o1, o2];
+    const bottomCards = [t2, o3, o4];
+    drawnCards = { top: topCards, bottom: bottomCards };
+
+    // DOM 更新
+    const topRow    = document.getElementById('topRow');
+    const bottomRow = document.getElementById('bottomRow');
+    topRow.innerHTML    = '';
+    bottomRow.innerHTML = '';
+
+    [...topCards, ...bottomCards].forEach((card, i) => {
+      const row = i < 3 ? topRow : bottomRow;
+      const sym    = getSymbol(card.name);
+      const rev    = card.pos === '逆位置';
+      const tClass = card.isTarot ? 'tarot-card' : 'oracle-card';
+      const badge  = card.isTarot ? 'タロット' : 'オラクル';
+      row.innerHTML += `
+        <div class="card-item ${tClass}${rev ? ' reversed-card' : ''}">
+          <div class="card-type-badge">${badge}</div>
+          <span class="card-symbol">${sym}</span>
+          <div class="card-name">${card.name}</div>
+          <span class="card-position ${rev ? 'pos-reversed' : 'pos-upright'}">${card.pos}</span>
+        </div>`;
+    });
+
+    document.getElementById('cardStage').classList.add('show');
+
+    // プロンプト生成
+    generatePrompt();
+    document.getElementById('promptSection').classList.add('show');
+
+    // スクロール
+    setTimeout(() => {
+      document.getElementById('cardStage').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  }
+
+  /* ═══════════════════════════════════════════
+     プロンプト生成
+  ═══════════════════════════════════════════ */
+
+  function generatePrompt() {
+    const name    = document.getElementById('clientName').value.trim()  || '（名前未入力）';
+    const theme   = document.getElementById('readingTheme').value.trim() || '（テーマ未入力）';
+    const summary = document.getElementById('summary').value.trim()      || '（相談内容未入力）';
+
+    const { top, bottom } = drawnCards;
+
+    const fmt = (c) => `${c.name}（${c.pos}）`;
+
+    const prompt = `あなたはプロのタロット占い師です。以下の情報をもとに、相談者に寄り添った丁寧で深みのある鑑定文を作成してください。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【相談者情報】
+━━━━━━━━━━━━━━━━━━━━━━
+お名前：${name}
+鑑定テーマ：${theme}
+相談内容：${summary}
+
+━━━━━━━━━━━━━━━━━━━━━━
+【カード結果】
+━━━━━━━━━━━━━━━━━━━━━━
+▲ 上段（現状・課題）
+  ・タロット  ：${fmt(top[0])}
+  ・オラクル① ：${fmt(top[1])}
+  ・オラクル② ：${fmt(top[2])}
+
+▼ 下段（アドバイス・未来の可能性）
+  ・タロット  ：${fmt(bottom[0])}
+  ・オラクル③ ：${fmt(bottom[1])}
+  ・オラクル④ ：${fmt(bottom[2])}
+
+━━━━━━━━━━━━━━━━━━━━━━
+【鑑定文作成の指針】
+━━━━━━━━━━━━━━━━━━━━━━
+1. 冒頭で相談内容と鑑定テーマへの共感を示し、引いたカードの全体的な印象を伝えてください。
+
+2. 【上段のメッセージ】
+   上段3枚のカード（現状・課題）を解釈してください。
+   ・タロットカードが示す現在の状況や核心
+   ・2枚のオラクルカードが加えるスピリチュアルなメッセージ
+   ・3枚を統合した「今あなたが置かれている状況」のリーディング
+
+3. 【下段のメッセージ】
+   下段3枚のカード（アドバイス・未来）を解釈してください。
+   ・タロットカードが示す転換点や未来の方向性
+   ・2枚のオラクルカードが伝える行動のヒントや宇宙からのサポート
+   ・3枚を統合した「これからのあなたへのガイダンス」のリーディング
+
+4. まとめとして、上段と下段のメッセージを融合させ、相談者へのエールと前向きなメッセージで締めくくってください。
+
+【文体の注意点】
+- 温かく、相談者に寄り添うトーンで
+- 断定的すぎず、可能性を広げる表現を使う
+- 相談者が自分で決断できるよう後押しするメッセージを心がける
+- 敬語（丁寧語）で統一する
+- 分量の目安：全体で1,000〜1,500字程度`;
+
+    document.getElementById('promptText').value = prompt;
+  }
+
+  /* ═══════════════════════════════════════════
+     コピー
+  ═══════════════════════════════════════════ */
+
+  function copyPrompt() {
+    const text = document.getElementById('promptText').value;
+    if (!text) return;
+
+    navigator.clipboard.writeText(text).then(() => {
+      const notice = document.getElementById('copyNotice');
+      notice.classList.add('show');
+      setTimeout(() => notice.classList.remove('show'), 2500);
+    }).catch(() => {
+      // フォールバック
+      const ta = document.getElementById('promptText');
+      ta.select();
+      document.execCommand('copy');
+      const notice = document.getElementById('copyNotice');
+      notice.classList.add('show');
+      setTimeout(() => notice.classList.remove('show'), 2500);
+    });
+  }
+
+  /* ─── 顧客情報変更時にプロンプトを再生成 ─── */
+  ['clientName', 'readingTheme', 'summary'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => {
+      if (drawnCards) generatePrompt();
+    });
+  });
+</script>
+</body>
+</html>
