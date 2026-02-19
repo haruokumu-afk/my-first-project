@@ -21,6 +21,8 @@
       --tarot-light: #a97ee8;
       --oracle: #2e7d9c;
       --oracle-light: #5db8d8;
+      --success: #3a9e6a;
+      --danger: #b84040;
       --radius: 12px;
     }
 
@@ -36,6 +38,7 @@
     header {
       text-align: center;
       margin-bottom: 36px;
+      position: relative;
     }
     header h1 {
       font-size: 2rem;
@@ -57,6 +60,114 @@
       letter-spacing: 0.3em;
       margin-bottom: 8px;
     }
+
+    /* 設定ボタン（ヘッダー右上） */
+    .settings-btn {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1.2rem;
+      padding: 8px 10px;
+      line-height: 1;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .settings-btn:hover { color: var(--gold); border-color: var(--gold); }
+
+    /* ── 設定モーダル ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.72);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-overlay.show { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 28px 24px;
+      width: 100%;
+      max-width: 480px;
+      animation: fadeInUp 0.25s ease;
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .modal-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: 0.06em;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1.3rem;
+      line-height: 1;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .modal-close:hover { color: var(--text); background: var(--surface2); }
+
+    .api-key-row {
+      position: relative;
+    }
+    .api-key-row input {
+      padding-right: 48px;
+    }
+    .toggle-visibility {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 2px;
+    }
+    .toggle-visibility:hover { color: var(--text); }
+
+    .modal-note {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 10px;
+      line-height: 1.6;
+    }
+    .modal-note a {
+      color: var(--oracle-light);
+      text-decoration: none;
+    }
+    .modal-note a:hover { text-decoration: underline; }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .api-saved-notice {
+      display: none;
+      font-size: 0.8rem;
+      color: #88e8a0;
+      margin-top: 8px;
+    }
+    .api-saved-notice.show { display: block; }
 
     /* ── コンテンツ幅 ── */
     .container {
@@ -94,19 +205,7 @@
       color: var(--gold-light);
     }
 
-    /* ── フォーム ── */
-    .form-grid {
-      display: grid;
-      gap: 16px;
-    }
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-    @media (max-width: 600px) {
-      .form-row { grid-template-columns: 1fr; }
-    }
+    /* ── フォーム共通 ── */
     label {
       display: block;
       font-size: 0.82rem;
@@ -114,7 +213,7 @@
       margin-bottom: 6px;
       letter-spacing: 0.04em;
     }
-    input[type="text"], textarea {
+    input[type="text"], input[type="password"], textarea {
       width: 100%;
       background: var(--bg);
       border: 1px solid var(--border);
@@ -127,10 +226,24 @@
       font-family: inherit;
       resize: vertical;
     }
-    input[type="text"]:focus, textarea:focus {
+    input[type="text"]:focus,
+    input[type="password"]:focus,
+    textarea:focus {
       border-color: var(--gold);
     }
-    textarea { min-height: 90px; }
+
+    /* ── LINE貼り付けエリア ── */
+    #lineText {
+      min-height: 180px;
+      font-size: 0.9rem;
+      line-height: 1.7;
+    }
+    .line-hint {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 8px;
+      line-height: 1.6;
+    }
 
     /* ── ボタン ── */
     .btn {
@@ -145,14 +258,42 @@
       letter-spacing: 0.06em;
       transition: transform 0.15s, opacity 0.15s;
     }
-    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+    .btn:active:not(:disabled) { transform: scale(0.97); }
+
     .btn-primary {
       background: linear-gradient(135deg, #6034b8, var(--tarot));
       color: #fff;
       font-size: 1.05rem;
       padding: 13px 32px;
     }
-    .btn-primary:hover { opacity: 0.88; }
+    .btn-primary:hover:not(:disabled) { opacity: 0.88; }
+
+    .btn-profile {
+      background: linear-gradient(135deg, #1c5a7a, var(--oracle));
+      color: #fff;
+      font-size: 0.95rem;
+      padding: 11px 26px;
+    }
+    .btn-profile:hover:not(:disabled) { opacity: 0.88; }
+
+    .btn-save {
+      background: linear-gradient(135deg, #1e6e44, var(--success));
+      color: #fff;
+      font-size: 0.9rem;
+      padding: 9px 22px;
+    }
+    .btn-save:hover { opacity: 0.88; }
+
+    .btn-secondary {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 0.9rem;
+      padding: 9px 18px;
+    }
+    .btn-secondary:hover { border-color: var(--gold); color: var(--gold); }
+
     .btn-copy {
       background: var(--surface2);
       border: 1px solid var(--border);
@@ -162,6 +303,100 @@
     }
     .btn-copy:hover { border-color: var(--gold); color: var(--gold); }
     .btn-center { display: flex; justify-content: center; }
+
+    /* ── プロファイリング中スピナー ── */
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    /* ── エラー表示 ── */
+    .alert {
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 0.88rem;
+      line-height: 1.6;
+      margin-top: 14px;
+    }
+    .alert-error {
+      background: rgba(184,64,64,0.15);
+      border: 1px solid rgba(184,64,64,0.4);
+      color: #e88888;
+    }
+    .alert-info {
+      background: rgba(46,125,156,0.15);
+      border: 1px solid rgba(46,125,156,0.4);
+      color: var(--oracle-light);
+    }
+
+    /* ── プロファイル結果 ── */
+    .profile-result {
+      display: none;
+      margin-top: 20px;
+    }
+    .profile-result.show { display: block; }
+
+    .profile-result-title {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .profile-result-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .profile-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width: 560px) {
+      .profile-grid { grid-template-columns: 1fr; }
+    }
+    .profile-field {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .profile-field.full-width {
+      grid-column: 1 / -1;
+    }
+    .profile-field-label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+      margin-bottom: 5px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .profile-field-value {
+      font-size: 0.92rem;
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .profile-field.unconfirmed {
+      border-color: rgba(201,168,76,0.4);
+      background: rgba(201,168,76,0.05);
+    }
+    .profile-field.unconfirmed .profile-field-label {
+      color: var(--gold);
+    }
 
     /* ── カード表示エリア ── */
     .card-stage {
@@ -313,35 +548,104 @@
     .card-row .card-item:nth-child(1) { animation-delay: 0.05s; }
     .card-row .card-item:nth-child(2) { animation-delay: 0.15s; }
     .card-row .card-item:nth-child(3) { animation-delay: 0.25s; }
+    .profile-result.show { animation: fadeInUp 0.3s ease; }
   </style>
 </head>
 <body>
 
+<!-- ══════════════════════════════════════
+     設定モーダル
+══════════════════════════════════════ -->
+<div class="modal-overlay" id="settingsModal" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">⚙️ API設定</div>
+      <button class="modal-close" onclick="closeSettings()">✕</button>
+    </div>
+
+    <div>
+      <label for="apiKeyInput">Claude API キー</label>
+      <div class="api-key-row">
+        <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." />
+        <button class="toggle-visibility" onclick="toggleApiKeyVisibility()" title="表示/非表示">👁</button>
+      </div>
+      <p class="modal-note">
+        APIキーは <strong>ブラウザのlocalStorage</strong> にのみ保存されます。サーバーへは送信されません。<br/>
+        APIキーは <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Anthropic Console</a> で取得できます。
+      </p>
+      <div class="api-saved-notice" id="apiSavedNotice">✓ 保存しました</div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeSettings()">キャンセル</button>
+      <button class="btn btn-save" onclick="saveApiKey()">💾 保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     ヘッダー
+══════════════════════════════════════ -->
 <header>
   <div class="stars">✦ ✧ ✦</div>
   <h1>タロット鑑定サポート</h1>
   <p>カードを引いて、鑑定プロンプトを自動生成します</p>
+  <button class="settings-btn" onclick="openSettings()" title="API設定">⚙️</button>
 </header>
 
 <div class="container">
 
-  <!-- ① 顧客情報 -->
+  <!-- ① LINE貼り付け → プロファイリング -->
   <div class="section">
-    <div class="section-title"><span>STEP 1</span>顧客情報の入力</div>
-    <div class="form-grid">
-      <div class="form-row">
-        <div>
-          <label for="clientName">相談者のお名前</label>
-          <input type="text" id="clientName" placeholder="例：山田 花子 様" />
+    <div class="section-title"><span>STEP 1</span>LINEのやり取りからプロファイリング</div>
+
+    <div>
+      <label for="lineText">公式LINEのやり取りを貼り付け</label>
+      <textarea id="lineText" placeholder="ここにLINEのトーク履歴をそのまま貼り付けてください。
+
+例：
+相談者：こんにちは。彼のことで相談があって…
+占い師：はい、どうぞ。
+相談者：付き合って2年の彼氏がいるんですが、最近冷たくて…"></textarea>
+      <p class="line-hint">※ 貼り付けた内容はClaude APIに送信されます。個人情報の取り扱いにご注意ください。</p>
+    </div>
+
+    <div class="btn-center" style="margin-top: 16px;">
+      <button class="btn btn-profile" id="profileBtn" onclick="runProfiling()">
+        🔍 プロファイリング実行
+      </button>
+    </div>
+
+    <div id="profilingAlert"></div>
+
+    <!-- プロファイリング結果 -->
+    <div class="profile-result" id="profileResult">
+      <div class="profile-result-title">✦ 抽出結果</div>
+      <div class="profile-grid">
+        <div class="profile-field">
+          <div class="profile-field-label">👤 相談者の名前</div>
+          <div class="profile-field-value" id="pName">—</div>
         </div>
-        <div>
-          <label for="readingTheme">鑑定テーマ</label>
-          <input type="text" id="readingTheme" placeholder="例：転職・恋愛・人間関係" />
+        <div class="profile-field">
+          <div class="profile-field-label">💑 現在の状況</div>
+          <div class="profile-field-value" id="pStatus">—</div>
         </div>
-      </div>
-      <div>
-        <label for="summary">相談内容の要約</label>
-        <textarea id="summary" placeholder="例：今の仕事を続けるべきか悩んでいる。新しい職場のオファーがあるが踏み切れない。"></textarea>
+        <div class="profile-field">
+          <div class="profile-field-label">🔮 鑑定テーマ</div>
+          <div class="profile-field-value" id="pTheme">—</div>
+        </div>
+        <div class="profile-field">
+          <div class="profile-field-label">🧠 相談者の性格・特徴</div>
+          <div class="profile-field-value" id="pPersonality">—</div>
+        </div>
+        <div class="profile-field full-width">
+          <div class="profile-field-label">📝 相談内容の要約</div>
+          <div class="profile-field-value" id="pSummary">—</div>
+        </div>
+        <div class="profile-field full-width unconfirmed">
+          <div class="profile-field-label">❓ 未確認事項</div>
+          <div class="profile-field-value" id="pUnconfirmed">—</div>
+        </div>
       </div>
     </div>
   </div>
@@ -427,15 +731,170 @@
     '神聖な男性性', '統合', '手放し', '新しい章', '光の目覚め', '奇跡の種',
   ];
 
-  // スート別絵文字
   const TAROT_SYMBOL = {
-    '大アルカナ': '✨',
-    'ワンド': '🔥',
-    'カップ': '💧',
-    'ソード': '⚡',
-    'ペンタクル': '🌿',
+    '大アルカナ': '✨', 'ワンド': '🔥', 'カップ': '💧', 'ソード': '⚡', 'ペンタクル': '🌿',
   };
   const ORACLE_SYMBOLS = ['🌙','⭐','🌸','🦋','🌺','🌈','🔮','🌟','💎','🌊','☀️','🌿'];
+
+  /* ═══════════════════════════════════════════
+     設定 / APIキー管理
+  ═══════════════════════════════════════════ */
+
+  const API_KEY_STORAGE = 'tarot_claude_api_key';
+
+  function openSettings() {
+    const key = localStorage.getItem(API_KEY_STORAGE) || '';
+    document.getElementById('apiKeyInput').value = key;
+    document.getElementById('apiSavedNotice').classList.remove('show');
+    document.getElementById('settingsModal').classList.add('show');
+  }
+
+  function closeSettings() {
+    document.getElementById('settingsModal').classList.remove('show');
+  }
+
+  function handleOverlayClick(e) {
+    if (e.target === document.getElementById('settingsModal')) closeSettings();
+  }
+
+  function saveApiKey() {
+    const key = document.getElementById('apiKeyInput').value.trim();
+    localStorage.setItem(API_KEY_STORAGE, key);
+    document.getElementById('apiSavedNotice').classList.add('show');
+    setTimeout(() => {
+      document.getElementById('apiSavedNotice').classList.remove('show');
+    }, 2000);
+  }
+
+  function toggleApiKeyVisibility() {
+    const input = document.getElementById('apiKeyInput');
+    input.type = input.type === 'password' ? 'text' : 'password';
+  }
+
+  function getApiKey() {
+    return localStorage.getItem(API_KEY_STORAGE) || '';
+  }
+
+  // Esc キーでモーダルを閉じる
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeSettings();
+  });
+
+  /* ═══════════════════════════════════════════
+     プロファイリング（Claude API）
+  ═══════════════════════════════════════════ */
+
+  let profileData = null;
+
+  function showAlert(html, type = 'error') {
+    const el = document.getElementById('profilingAlert');
+    el.innerHTML = `<div class="alert alert-${type}">${html}</div>`;
+  }
+
+  function clearAlert() {
+    document.getElementById('profilingAlert').innerHTML = '';
+  }
+
+  async function runProfiling() {
+    const lineText = document.getElementById('lineText').value.trim();
+    if (!lineText) {
+      showAlert('LINEのやり取りを貼り付けてください。');
+      return;
+    }
+
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      showAlert(
+        'Claude APIキーが設定されていません。<br/>' +
+        '画面右上の <strong>⚙️</strong> からAPIキーを入力・保存してください。',
+        'info'
+      );
+      return;
+    }
+
+    // ローディング状態
+    const btn = document.getElementById('profileBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> 解析中...';
+    clearAlert();
+    document.getElementById('profileResult').classList.remove('show');
+
+    const prompt = `以下のLINEトーク履歴を分析して、タロット占い師が鑑定を行うために必要な情報を抽出してください。
+
+【LINEトーク履歴】
+${lineText}
+
+以下のJSON形式のみで回答してください（説明文は不要）。値が不明・読み取れない場合は "不明" と記入してください。
+
+{
+  "name": "相談者の名前（ニックネームでも可）",
+  "status": "現在の状況（例：交際中／復縁希望／片思い／既婚者との恋愛／など）",
+  "theme": "鑑定テーマを一言で（例：彼の気持ち／復縁の可能性／恋愛の進展など）",
+  "summary": "相談内容の要約（3〜5文で具体的に）",
+  "personality": "相談者の性格・特徴（文章から読み取れること。感情的／論理的／不安が強い等）",
+  "unconfirmed": "鑑定前に確認しておくべき未確認事項（複数あれば改行区切りで列挙）"
+}`;
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 1024,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        const msg = err?.error?.message || `HTTPエラー ${res.status}`;
+        if (res.status === 401) {
+          throw new Error('APIキーが無効です。設定画面でキーを確認してください。');
+        }
+        throw new Error(msg);
+      }
+
+      const data = await res.json();
+      const raw = data?.content?.[0]?.text || '';
+
+      // JSON部分を抽出
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('APIの応答からJSONを読み取れませんでした。');
+
+      profileData = JSON.parse(jsonMatch[0]);
+      displayProfile(profileData);
+
+      // カードが既に引かれている場合はプロンプトを再生成
+      if (drawnCards) generatePrompt();
+
+    } catch (e) {
+      showAlert(`エラー：${e.message}`);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '🔍 プロファイリング実行';
+    }
+  }
+
+  function displayProfile(p) {
+    document.getElementById('pName').textContent        = p.name        || '—';
+    document.getElementById('pStatus').textContent     = p.status      || '—';
+    document.getElementById('pTheme').textContent      = p.theme       || '—';
+    document.getElementById('pSummary').textContent    = p.summary     || '—';
+    document.getElementById('pPersonality').textContent = p.personality || '—';
+    document.getElementById('pUnconfirmed').textContent = p.unconfirmed || '—';
+
+    document.getElementById('profileResult').classList.add('show');
+
+    setTimeout(() => {
+      document.getElementById('profileResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 80);
+  }
 
   /* ═══════════════════════════════════════════
      ユーティリティ
@@ -450,13 +909,9 @@
     return a;
   }
 
-  function pick(arr, n) {
-    return shuffle(arr).slice(0, n);
-  }
+  function pick(arr, n) { return shuffle(arr).slice(0, n); }
 
-  function randomPosition() {
-    return Math.random() < 0.5 ? '正位置' : '逆位置';
-  }
+  function randomPosition() { return Math.random() < 0.5 ? '正位置' : '逆位置'; }
 
   function getSymbol(cardName) {
     if (ORACLE.includes(cardName)) {
@@ -471,52 +926,26 @@
   }
 
   /* ═══════════════════════════════════════════
-     カード描画
-  ═══════════════════════════════════════════ */
-
-  function renderCard(card, isTarot) {
-    const pos = randomPosition();
-    const reversed = pos === '逆位置';
-    const symbol = getSymbol(card);
-    const typeLabel = isTarot ? 'タロット' : 'オラクル';
-    const typeClass = isTarot ? 'tarot-card' : 'oracle-card';
-
-    return {
-      html: `
-        <div class="card-item ${typeClass}${reversed ? ' reversed-card' : ''}">
-          <div class="card-type-badge">${typeLabel}</div>
-          <span class="card-symbol">${symbol}</span>
-          <div class="card-name">${card}</div>
-          <span class="card-position ${reversed ? 'pos-reversed' : 'pos-upright'}">${pos}</span>
-        </div>`,
-      text: `${card}（${pos}）`,
-    };
-  }
-
-  /* ═══════════════════════════════════════════
-     メイン：カードを引く
+     カードを引く
   ═══════════════════════════════════════════ */
 
   let drawnCards = null;
 
   function drawCards() {
-    const [t1, t2] = pick(TAROT, 2).map(c => ({ name: c, pos: randomPosition(), isTarot: true  }));
+    const [t1, t2] = pick(TAROT, 2).map(c => ({ name: c, pos: randomPosition(), isTarot: true }));
     const [o1, o2, o3, o4] = pick(ORACLE, 4).map(c => ({ name: c, pos: randomPosition(), isTarot: false }));
 
-    // 上段：タロット1 + オラクル1 + オラクル2
-    // 下段：タロット2 + オラクル3 + オラクル4
     const topCards    = [t1, o1, o2];
     const bottomCards = [t2, o3, o4];
     drawnCards = { top: topCards, bottom: bottomCards };
 
-    // DOM 更新
     const topRow    = document.getElementById('topRow');
     const bottomRow = document.getElementById('bottomRow');
     topRow.innerHTML    = '';
     bottomRow.innerHTML = '';
 
     [...topCards, ...bottomCards].forEach((card, i) => {
-      const row = i < 3 ? topRow : bottomRow;
+      const row    = i < 3 ? topRow : bottomRow;
       const sym    = getSymbol(card.name);
       const rev    = card.pos === '逆位置';
       const tClass = card.isTarot ? 'tarot-card' : 'oracle-card';
@@ -531,12 +960,9 @@
     });
 
     document.getElementById('cardStage').classList.add('show');
-
-    // プロンプト生成
     generatePrompt();
     document.getElementById('promptSection').classList.add('show');
 
-    // スクロール
     setTimeout(() => {
       document.getElementById('cardStage').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
@@ -547,12 +973,15 @@
   ═══════════════════════════════════════════ */
 
   function generatePrompt() {
-    const name    = document.getElementById('clientName').value.trim()  || '（名前未入力）';
-    const theme   = document.getElementById('readingTheme').value.trim() || '（テーマ未入力）';
-    const summary = document.getElementById('summary').value.trim()      || '（相談内容未入力）';
+    const p = profileData || {};
+    const name        = p.name        || '（未プロファイリング）';
+    const status      = p.status      || '（未プロファイリング）';
+    const theme       = p.theme       || '（未プロファイリング）';
+    const summary     = p.summary     || '（未プロファイリング）';
+    const personality = p.personality || '（未プロファイリング）';
+    const unconfirmed = p.unconfirmed || '（なし）';
 
     const { top, bottom } = drawnCards;
-
     const fmt = (c) => `${c.name}（${c.pos}）`;
 
     const prompt = `あなたはプロのタロット占い師です。以下の情報をもとに、相談者に寄り添った丁寧で深みのある鑑定文を作成してください。
@@ -560,9 +989,12 @@
 ━━━━━━━━━━━━━━━━━━━━━━
 【相談者情報】
 ━━━━━━━━━━━━━━━━━━━━━━
-お名前：${name}
-鑑定テーマ：${theme}
-相談内容：${summary}
+お名前　　　：${name}
+現在の状況　：${status}
+鑑定テーマ　：${theme}
+相談内容　　：${summary}
+性格・特徴　：${personality}
+未確認事項　：${unconfirmed}
 
 ━━━━━━━━━━━━━━━━━━━━━━
 【カード結果】
@@ -598,6 +1030,7 @@
 
 【文体の注意点】
 - 温かく、相談者に寄り添うトーンで
+- 相談者の性格・特徴（${personality}）を踏まえた表現を心がける
 - 断定的すぎず、可能性を広げる表現を使う
 - 相談者が自分で決断できるよう後押しするメッセージを心がける
 - 敬語（丁寧語）で統一する
@@ -615,26 +1048,20 @@
     if (!text) return;
 
     navigator.clipboard.writeText(text).then(() => {
-      const notice = document.getElementById('copyNotice');
-      notice.classList.add('show');
-      setTimeout(() => notice.classList.remove('show'), 2500);
+      showCopyNotice();
     }).catch(() => {
-      // フォールバック
       const ta = document.getElementById('promptText');
       ta.select();
       document.execCommand('copy');
-      const notice = document.getElementById('copyNotice');
-      notice.classList.add('show');
-      setTimeout(() => notice.classList.remove('show'), 2500);
+      showCopyNotice();
     });
   }
 
-  /* ─── 顧客情報変更時にプロンプトを再生成 ─── */
-  ['clientName', 'readingTheme', 'summary'].forEach(id => {
-    document.getElementById(id).addEventListener('input', () => {
-      if (drawnCards) generatePrompt();
-    });
-  });
+  function showCopyNotice() {
+    const notice = document.getElementById('copyNotice');
+    notice.classList.add('show');
+    setTimeout(() => notice.classList.remove('show'), 2500);
+  }
 </script>
 </body>
 </html>
