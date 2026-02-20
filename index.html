@@ -539,6 +539,31 @@
     }
     .copy-notice.show { display: inline; }
 
+    /* ── オラクルカード：キーワード・解説 ── */
+    .card-keyword {
+      font-size: 0.72rem;
+      color: var(--oracle-light);
+      letter-spacing: 0.04em;
+      margin: 4px 0 6px;
+    }
+    .tarot-card .card-keyword { color: var(--tarot-light); }
+    .card-description {
+      font-size: 0.72rem;
+      color: rgba(232,224,248,0.7);
+      line-height: 1.55;
+      margin-top: 8px;
+      text-align: left;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 8px;
+      max-height: 130px;
+      overflow-y: auto;
+    }
+    .card-description::-webkit-scrollbar { width: 3px; }
+    .card-description::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.15);
+      border-radius: 2px;
+    }
+
     /* ── アニメーション ── */
     @keyframes fadeInUp {
       from { opacity: 0; transform: translateY(16px); }
