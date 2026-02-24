@@ -38,6 +38,7 @@ const ORACLE_SYMBOLS = ['🌙','⭐','🌸','🦋','🌺','🌈','🔮','🌟','
    設定 / APIキー管理
 ═══════════════════════════════════════════ */
 
+const API_PROXY = 'http://localhost:8888';
 const API_KEY_STORAGE = 'tarot_claude_api_key';
 
 function openSettings() {
@@ -139,13 +140,15 @@ ${lineText}
 }`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    // ローカルプロキシ経由で送信（CORS回避）
+    const apiUrl = `${API_PROXY}/v1/messages`;
+
+    const res = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
@@ -154,21 +157,38 @@ ${lineText}
       }),
     });
 
+    const responseText = await res.text();
+    console.log(`[Profiling] status=${res.status}, body=`, responseText);
+
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      const msg = err?.error?.message || `HTTPエラー ${res.status}`;
+      let msg = `HTTPエラー ${res.status}`;
+      try {
+        const err = JSON.parse(responseText);
+        msg = err?.error?.message || msg;
+      } catch (_) { /* JSONでない場合はそのまま */ }
       if (res.status === 401) {
         throw new Error('APIキーが無効です。設定画面でキーを確認してください。');
       }
-      throw new Error(msg);
+      throw new Error(`${msg}\n\n[レスポンス]\n${responseText.slice(0, 500)}`);
     }
 
-    const data = await res.json();
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseErr) {
+      console.error('[Profiling] JSONパース失敗:', responseText);
+      throw new Error(`APIレスポンスのJSONパースに失敗しました。\n\n[レスポンス先頭500文字]\n${responseText.slice(0, 500)}`);
+    }
+
     const raw = data?.content?.[0]?.text || '';
+    console.log('[Profiling] Claude応答テキスト:', raw);
 
     // JSON部分を抽出
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('APIの応答からJSONを読み取れませんでした。');
+    if (!jsonMatch) {
+      console.error('[Profiling] JSON抽出失敗。応答全文:', raw);
+      throw new Error(`APIの応答からJSONを読み取れませんでした。\n\n[応答テキスト先頭500文字]\n${raw.slice(0, 500)}`);
+    }
 
     profileData = JSON.parse(jsonMatch[0]);
     displayProfile(profileData);
@@ -177,6 +197,7 @@ ${lineText}
     if (drawnCards) await generatePrompt();
 
   } catch (e) {
+    console.error('[Profiling] エラー:', e);
     showAlert(`エラー：${e.message}`);
   } finally {
     btn.disabled = false;
