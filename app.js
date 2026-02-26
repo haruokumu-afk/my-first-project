@@ -180,8 +180,11 @@ ${lineText}
       throw new Error(`APIレスポンスのJSONパースに失敗しました。\n\n[レスポンス先頭500文字]\n${responseText.slice(0, 500)}`);
     }
 
-    const raw = data?.content?.[0]?.text || '';
+    let raw = data?.content?.[0]?.text || '';
     console.log('[Profiling] Claude応答テキスト:', raw);
+
+    // マークダウンのコードブロックを除去
+    raw = raw.replace(/```json?\s*/g, '').replace(/```/g, '').trim();
 
     // JSON部分を抽出
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
