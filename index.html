@@ -564,6 +564,108 @@
       border-radius: 2px;
     }
 
+    /* ── PDF鑑定書 ── */
+    #readingText {
+      min-height: 260px;
+      font-size: 0.9rem;
+      line-height: 1.7;
+    }
+    .pdf-btn-row {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 16px;
+    }
+    .btn-pdf {
+      background: linear-gradient(135deg, #8c3a5e, #b84a7a);
+      color: #fff;
+      font-size: 0.95rem;
+      padding: 11px 26px;
+    }
+    .btn-pdf:hover:not(:disabled) { opacity: 0.88; }
+
+    /* PDF プレビューエリア */
+    #pdfPreview {
+      margin-top: 20px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    #pdfPreview:empty { display: none; }
+
+    /* PDF生成用コンテナ（非表示） */
+    #pdfContent {
+      position: absolute;
+      left: -9999px;
+      top: 0;
+    }
+
+    /* PDF内部スタイル */
+    .pdf-page {
+      background: #a07888;
+      color: #2a1520;
+      font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+      width: 190mm;
+      padding: 14mm 18mm;
+      line-height: 1.9;
+      font-size: 10.5pt;
+    }
+    .pdf-page p {
+      margin: 0 0 1.2em;
+      text-align: justify;
+    }
+    .pdf-ren {
+      display: block;
+      width: 55mm;
+      height: auto;
+      border-radius: 8px;
+      margin: 0 auto 24px;
+    }
+    .pdf-divider {
+      border: none;
+      border-top: 1px solid rgba(42,21,32,0.2);
+      margin: 32px 0;
+    }
+    .pdf-grid6 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 20px 0;
+    }
+    .pdf-grid6 img {
+      width: 100%;
+      height: auto;
+      border-radius: 6px;
+    }
+    .pdf-grid6 .reversed {
+      transform: rotate(180deg);
+    }
+    .pdf-highlight {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 20px 0;
+    }
+    .pdf-highlight img {
+      width: 100%;
+      height: auto;
+      border-radius: 6px;
+    }
+    .pdf-highlight .active-card {
+      border: 3px solid #cc0000;
+      border-radius: 8px;
+    }
+    .pdf-highlight .reversed {
+      transform: rotate(180deg);
+    }
+    .pdf-signature {
+      text-align: right;
+      font-weight: 700;
+      font-size: 11pt;
+      margin-top: 32px;
+      color: #2a1520;
+    }
+
     /* ── アニメーション ── */
     @keyframes fadeInUp {
       from { opacity: 0; transform: translateY(16px); }
@@ -728,9 +830,30 @@
     <textarea id="promptText" readonly></textarea>
   </div>
 
+  <!-- ④ PDF鑑定書生成 -->
+  <div class="section" id="pdfSection" style="display:none;">
+    <div class="section-title"><span>STEP 4</span>PDF鑑定書を生成</div>
+
+    <div>
+      <label for="readingText">AIが生成した鑑定文を貼り付け</label>
+      <textarea id="readingText" placeholder="セクションマーカー（{{OPENING}} など）付きの鑑定文をここに貼り付けてください。"></textarea>
+    </div>
+
+    <div class="pdf-btn-row">
+      <button class="btn btn-pdf" onclick="previewPdf()">🔍 プレビュー</button>
+      <button class="btn btn-pdf" onclick="downloadPdf()">📄 PDFダウンロード</button>
+    </div>
+
+    <div id="pdfPreview"></div>
+  </div>
+
 </div><!-- /container -->
 
+<!-- PDF生成用非表示コンテナ -->
+<div id="pdfContent"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="oracle-cards.js?v=2"></script>
-<script src="app.js?v=3"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>

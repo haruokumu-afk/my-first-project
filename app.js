@@ -295,6 +295,7 @@ async function drawCards() {
   document.getElementById('cardStage').classList.add('show');
   await generatePrompt();
   document.getElementById('promptSection').classList.add('show');
+  showPdfSection();
 
   setTimeout(() => {
     document.getElementById('cardStage').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -400,4 +401,219 @@ function showCopyNotice() {
   const notice = document.getElementById('copyNotice');
   notice.classList.add('show');
   setTimeout(() => notice.classList.remove('show'), 2500);
+}
+
+/* ═══════════════════════════════════════════
+   カード画像パスヘルパー
+═══════════════════════════════════════════ */
+
+function getTarotImagePath(cardName) {
+  const name = cardName.replace(/（.*?）/, '');
+  return `images/tarot/${name}.jpg`;
+}
+
+function getOracleImagePath(displayName) {
+  const SPECIAL = { 'てんとう虫とスイートピー': 'てんとう虫' };
+  const animalName = SPECIAL[displayName] || displayName.split('と')[0];
+  return `images/oracle/${animalName}.jpg`;
+}
+
+/* ═══════════════════════════════════════════
+   PDF鑑定書生成
+═══════════════════════════════════════════ */
+
+const SECTION_MARKERS = [
+  'OPENING', 'UPPER_TAROT', 'UPPER_ORACLE1', 'UPPER_ORACLE2', 'UPPER_SUMMARY',
+  'LOWER_TAROT', 'LOWER_ORACLE1', 'LOWER_ORACLE2', 'LOWER_SUMMARY',
+  'ACTION_PLAN', 'ENDING',
+];
+
+const SECTION_KEYS = [
+  'opening', 'upperTarot', 'upperOracle1', 'upperOracle2', 'upperSummary',
+  'lowerTarot', 'lowerOracle1', 'lowerOracle2', 'lowerSummary',
+  'actionPlan', 'ending',
+];
+
+function parseReadingText(text) {
+  const sections = {};
+
+  // マーカー前後の余分な記号（**、`、スペース等）を許容するパターン
+  const pattern = new RegExp(
+    `[*\`\\s]*\\{\\{\\s*(${SECTION_MARKERS.join('|')})\\s*\\}\\}[*\`\\s]*`,
+    'g'
+  );
+  const parts = text.split(pattern);
+
+  // parts: [前テキスト, マーカー名, テキスト, マーカー名, テキスト, ...]
+  let currentKey = null;
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i].trim();
+    const markerIdx = SECTION_MARKERS.indexOf(part);
+    if (markerIdx !== -1) {
+      currentKey = SECTION_KEYS[markerIdx];
+    } else if (currentKey) {
+      sections[currentKey] = part;
+      currentKey = null;
+    }
+  }
+
+  console.log('[parseReadingText] パース結果:', Object.keys(sections).length, 'セクション検出', sections);
+  return sections;
+}
+
+function textToHtml(text) {
+  if (!text) return '';
+  return text.split(/\n{2,}/).map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
+}
+
+function buildCardImages(cards, highlightIndex) {
+  // 3枚横並び、highlightIndex のカードに赤枠
+  let html = '<div class="pdf-highlight">';
+  cards.forEach((card, i) => {
+    const isReversed = card.pos === '逆位置';
+    const isActive = i === highlightIndex;
+    const src = card.isTarot ? getTarotImagePath(card.name) : getOracleImagePath(card.name);
+    const classes = [];
+    if (isActive) classes.push('active-card');
+    if (isReversed) classes.push('reversed');
+    html += `<img src="${src}" alt="${card.name}" class="${classes.join(' ')}" />`;
+  });
+  html += '</div>';
+  return html;
+}
+
+function buildPdfContent(sections) {
+  if (!drawnCards) return '<p>カードが引かれていません。STEP 2でカードを引いてください。</p>';
+
+  const { top, bottom } = drawnCards;
+  const allCards = [...top, ...bottom];
+  let html = '<div class="pdf-page">';
+
+  // 1. レン写真 + opening
+  html += '<img class="pdf-ren" src="images/ren.jpg" alt="レン" />';
+  html += textToHtml(sections.opening);
+
+  // 2. 全展開ショット（6枚グリッド: 上段3 + 下段3）
+  html += '<div class="pdf-grid6">';
+  allCards.forEach(card => {
+    const src = card.isTarot ? getTarotImagePath(card.name) : getOracleImagePath(card.name);
+    const cls = card.pos === '逆位置' ? 'reversed' : '';
+    html += `<img src="${src}" alt="${card.name}" class="${cls}" />`;
+  });
+  html += '</div>';
+
+  // 3. 区切り線（上段導入）
+  html += '<hr class="pdf-divider" />';
+
+  // 4. 上段タロット（ハイライト[0]）
+  html += buildCardImages(top, 0);
+  html += textToHtml(sections.upperTarot);
+
+  // 5. 上段オラクル①（ハイライト[1]）
+  html += buildCardImages(top, 1);
+  html += textToHtml(sections.upperOracle1);
+
+  // 6. 上段オラクル②（ハイライト[2]）
+  html += buildCardImages(top, 2);
+  html += textToHtml(sections.upperOracle2);
+
+  // 7. 上段まとめ
+  html += textToHtml(sections.upperSummary);
+
+  // 8. 区切り線（下段導入）
+  html += '<hr class="pdf-divider" />';
+
+  // 9. 下段タロット（ハイライト[0]）
+  html += buildCardImages(bottom, 0);
+  html += textToHtml(sections.lowerTarot);
+
+  // 10. 下段オラクル①（ハイライト[1]）
+  html += buildCardImages(bottom, 1);
+  html += textToHtml(sections.lowerOracle1);
+
+  // 11. 下段オラクル②（ハイライト[2]）
+  html += buildCardImages(bottom, 2);
+  html += textToHtml(sections.lowerOracle2);
+
+  // 12. 下段まとめ
+  html += textToHtml(sections.lowerSummary);
+
+  // 13. 区切り線（アクションプラン前）
+  html += '<hr class="pdf-divider" />';
+
+  // 14. アクションプラン
+  html += textToHtml(sections.actionPlan);
+
+  // 15. 区切り線（エンディング前）
+  html += '<hr class="pdf-divider" />';
+
+  // 16. エンディング + 署名
+  html += textToHtml(sections.ending);
+  html += '<div class="pdf-signature">男性心理翻訳家 レン</div>';
+
+  html += '</div>';
+  return html;
+}
+
+function previewPdf() {
+  const text = document.getElementById('readingText').value.trim();
+  if (!text) {
+    alert('鑑定文を貼り付けてください。');
+    return;
+  }
+  const sections = parseReadingText(text);
+  const html = buildPdfContent(sections);
+
+  // プレビュー表示
+  const preview = document.getElementById('pdfPreview');
+  preview.innerHTML = html;
+  preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function downloadPdf() {
+  const text = document.getElementById('readingText').value.trim();
+  if (!text) {
+    alert('鑑定文を貼り付けてください。');
+    return;
+  }
+
+  // まずプレビューにレンダリング
+  const sections = parseReadingText(text);
+  const html = buildPdfContent(sections);
+  const preview = document.getElementById('pdfPreview');
+  preview.innerHTML = html;
+
+  // 全画像の読み込みを待つ
+  const images = preview.querySelectorAll('img');
+  await Promise.all([...images].map(img => {
+    if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+    return new Promise(resolve => {
+      img.onload = resolve;
+      img.onerror = resolve;
+    });
+  }));
+
+  // ブラウザのレイアウト完了を待つ
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  const filename = `${profileData?.name || '鑑定'}様_個人鑑定.pdf`;
+  const target = preview.querySelector('.pdf-page') || preview;
+
+  html2pdf().set({
+    margin: [10, 10, 10, 10],
+    filename: filename,
+    image: { type: 'jpeg', quality: 0.95 },
+    html2canvas: {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: null,
+    },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+  }).from(target).save();
+}
+
+/* STEP4 セクション表示: プロンプト生成後に表示 */
+function showPdfSection() {
+  document.getElementById('pdfSection').style.display = '';
 }

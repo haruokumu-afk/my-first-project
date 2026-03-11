@@ -13,6 +13,7 @@
 import http.server
 import json
 import os
+import ssl
 import sys
 import urllib.request
 import urllib.error
@@ -57,8 +58,16 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
             method='POST',
         )
 
+        # macOS の Python は証明書ストアが見つからない場合がある
+        ctx = ssl.create_default_context()
         try:
-            with urllib.request.urlopen(req) as resp:
+            ctx.load_default_certs()
+        except Exception:
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+
+        try:
+            with urllib.request.urlopen(req, context=ctx, timeout=120) as resp:
                 resp_body = resp.read()
                 self.send_response(resp.status)
                 self.send_header('Content-Type', resp.getheader('Content-Type', 'application/json'))
@@ -78,13 +87,19 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(error_msg)
 
     def log_message(self, format, *args):
-        method = args[0].split()[0] if args else ''
-        path = args[0].split()[1] if args and len(args[0].split()) > 1 else ''
-        status = args[1] if len(args) > 1 else ''
-        if path.startswith('/v1/'):
-            print(f'  [PROXY] {method} {path} -> {status}')
-        elif method in ('GET',) and not path.startswith('/v1/'):
-            print(f'  [FILE]  {path} -> {status}')
+        try:
+            msg = str(args[0]) if args else ''
+            parts = msg.split()
+            method = parts[0] if len(parts) > 0 else ''
+            path = parts[1] if len(parts) > 1 else ''
+            status = str(args[1]) if len(args) > 1 else ''
+            if path.startswith('/v1/'):
+                print(f'  [PROXY] {method} {path} -> {status}')
+            elif method in ('GET',):
+                print(f'  [FILE]  {path} -> {status}')
+        except Exception:
+            # ログ出力でエラーが起きてもリクエスト処理を止めない
+            pass
 
 
 def main():
